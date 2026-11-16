@@ -1,150 +1,167 @@
-import io
-
-import pandas as pd
 import streamlit as st
+import pandas as pd
+from io import StringIO
+from Bio.Seq import Seq
 
-from variants import analyze_counts, analyze_vcf
-
-st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon="🧬", layout="wide")
-
-st.title("🧬 Genomic Variant Frequency Calculator")
-st.write(
-    "Compute allele frequencies, genotype frequencies, Minor Allele Frequency (MAF) "
-    "and a Hardy-Weinberg Equilibrium (HWE) check for genetic variants."
+st.set_page_config(
+    page_title="Genomic Variant Frequency Calculator",
+    page_icon="🧬",
+    layout="centered"
 )
 
-mode = st.sidebar.radio("Input mode", ["Upload a VCF file", "Enter genotype counts"])
+st.title("🧬 Genomic Variant Frequency Calculator")
+st.caption("Calculate variant allele frequencies from genomic variant counts.")
 
-with st.sidebar.expander("What do these terms mean?"):
-    st.markdown(
-        """
-- **Allele frequency**: how common an allele is among all copies in the population.
-  p = reference allele, q = alternate allele (p + q = 1).
-- **Genotype frequency**: share of people who are HomRef (AA), Het (Aa) or HomAlt (aa).
-- **MAF**: frequency of the *less* common allele. Variants are often called
-  common (>= 5%), low-frequency (1-5%) or rare (< 1%).
-- **HWE**: compares observed genotype counts with the p², 2pq, q² expected in a
-  randomly mating population. A small p-value (< 0.05) is a warning sign for
-  genotyping errors, selection or population structure.
-        """
+st.markdown("""
+This tool calculates **Variant Allele Frequency (VAF)** using:
+
+**VAF (%) = Variant Alleles ÷ Total Alleles × 100**
+
+Biopython is used to validate DNA alleles and perform basic sequence handling.
+""")
+
+tab1, tab2 = st.tabs(["Single Variant", "CSV Dataset"])
+
+with tab1:
+    st.subheader("Calculate one variant")
+
+    variant_id = st.text_input("Variant ID", placeholder="e.g. rs123456")
+    variant_allele = st.text_input(
+        "Variant allele",
+        placeholder="e.g. A",
+        max_chars=50
+    )
+    total_alleles = st.number_input(
+        "Total alleles observed",
+        min_value=1,
+        step=1,
+        value=100
+    )
+    variant_alleles = st.number_input(
+        "Variant alleles observed",
+        min_value=0,
+        step=1,
+        value=10
     )
 
+    if st.button("Calculate frequency", type="primary"):
+        if not variant_id.strip():
+            st.error("Please enter a variant ID.")
+        elif variant_alleles > total_alleles:
+            st.error("Variant alleles cannot be greater than total alleles.")
+        else:
+            allele = variant_allele.strip().upper()
 
-# ---------------------------------------------------------------------------
-# Mode 1: VCF upload
-# ---------------------------------------------------------------------------
-if mode == "Upload a VCF file":
-    st.header("Upload a VCF file")
+            if allele:
+                try:
+                    Seq(allele)
+                    if any(base not in "ACGTN" for base in allele):
+                        st.error("Allele should contain only A, C, G, T, or N.")
+                        st.stop()
+                except Exception:
+                    st.error("Invalid allele sequence.")
+                    st.stop()
 
-    maf_threshold = st.sidebar.slider("MAF filter threshold", 0.0, 0.5, 0.05, 0.01)
+            frequency = (variant_alleles / total_alleles) * 100
 
-    uploaded = st.file_uploader("Choose a .vcf file", type=["vcf"])
-    use_sample = st.checkbox("Use the included sample file (sample_data/sample.vcf)")
+            st.success(f"Variant allele frequency: **{frequency:.2f}%**")
 
-    source = None
-    if uploaded is not None:
-        source = io.StringIO(uploaded.getvalue().decode("utf-8", errors="replace"))
-    elif use_sample:
-        with open("sample_data/sample.vcf", encoding="utf-8") as fh:
-            source = io.StringIO(fh.read())
+            result = pd.DataFrame([{
+                "Variant ID": variant_id.strip(),
+                "Variant Allele": allele if allele else "Not specified",
+                "Variant Alleles": variant_alleles,
+                "Total Alleles": total_alleles,
+                "Frequency (%)": round(frequency, 2)
+            }])
 
-    if source is not None:
+            st.dataframe(result, use_container_width=True, hide_index=True)
+
+with tab2:
+    st.subheader("Calculate frequencies from a CSV file")
+
+    st.markdown("""
+Your CSV should contain these columns:
+
+`variant_id`, `variant_alleles`, `total_alleles`
+
+Example:
+
+```text
+variant_id,variant_alleles,total_alleles
+rs123456,10,100
+rs789012,25,200
+rs345678,4,80
+```
+""")
+
+    uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+
+    if uploaded_file is not None:
         try:
-            df = analyze_vcf(source, maf_threshold=maf_threshold)
-        except Exception as exc:  # show a friendly message instead of a traceback
-            st.error(f"Could not read this VCF file: {exc}")
-            st.stop()
+            df = pd.read_csv(uploaded_file)
 
-        if df.empty:
-            st.warning(
-                "No usable bi-allelic variants with genotype (GT) calls were found. "
-                "Check that the file is a valid VCF with sample columns."
-            )
-            st.stop()
+            required = {"variant_id", "variant_alleles", "total_alleles"}
+            missing = required - set(df.columns)
 
-        # Summary metrics
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Variants analysed", len(df))
-        c2.metric("Pass MAF filter", int(df["Passes_MAF_filter"].sum()))
-        c3.metric("Rare variants (MAF < 1%)", int((df["Category"] == "rare").sum()))
-        c4.metric("Fail HWE (p < 0.05)", int((~df["HWE_pass"]).sum()))
+            if missing:
+                st.error(
+                    "Missing required column(s): "
+                    + ", ".join(sorted(missing))
+                )
+            else:
+                df["variant_alleles"] = pd.to_numeric(
+                    df["variant_alleles"], errors="coerce"
+                )
+                df["total_alleles"] = pd.to_numeric(
+                    df["total_alleles"], errors="coerce"
+                )
 
-        # Filters
-        st.subheader("Results table")
-        f1, f2 = st.columns(2)
-        only_pass_maf = f1.checkbox("Show only variants passing the MAF filter")
-        only_pass_hwe = f2.checkbox("Show only variants passing HWE")
-        view = df
-        if only_pass_maf:
-            view = view[view["Passes_MAF_filter"]]
-        if only_pass_hwe:
-            view = view[view["HWE_pass"]]
-        st.dataframe(view, hide_index=True)
+                if df[["variant_alleles", "total_alleles"]].isna().any().any():
+                    st.error("Variant and total allele counts must be numeric.")
+                elif (df["total_alleles"] <= 0).any():
+                    st.error("Total allele counts must be greater than zero.")
+                elif (df["variant_alleles"] < 0).any():
+                    st.error("Variant allele counts cannot be negative.")
+                elif (df["variant_alleles"] > df["total_alleles"]).any():
+                    st.error(
+                        "Variant allele count cannot be greater than total allele count."
+                    )
+                else:
+                    df["frequency_percent"] = (
+                        df["variant_alleles"] / df["total_alleles"] * 100
+                    ).round(2)
 
-        st.download_button(
-            "Download results as CSV",
-            view.to_csv(index=False).encode("utf-8"),
-            file_name="variant_frequencies.csv",
-            mime="text/csv",
-        )
+                    st.success(f"Calculated frequencies for {len(df)} variant(s).")
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
-        # Charts
-        st.subheader("Charts")
-        left, right = st.columns(2)
-        with left:
-            st.caption("MAF distribution (number of variants per MAF bin)")
-            bins = pd.cut(df["MAF"], bins=[0, 0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5], include_lowest=True)
-            hist = bins.value_counts().sort_index()
-            hist.index = hist.index.astype(str)
-            st.bar_chart(hist)
-        with right:
-            st.caption("Allele frequency (q) per variant")
-            labels = df["ID"].where(df["ID"] != ".", df["CHROM"].astype(str) + ":" + df["POS"].astype(str))
-            st.bar_chart(pd.Series(df["Alt_freq (q)"].values, index=labels.values))
-    else:
-        st.info("Upload a VCF file, or tick the sample file box, to get started.")
-
-
-# ---------------------------------------------------------------------------
-# Mode 2: manual genotype counts
-# ---------------------------------------------------------------------------
-else:
-    st.header("Enter genotype counts")
-    c1, c2, c3 = st.columns(3)
-    n_hom_ref = c1.number_input("Homozygous reference (AA)", min_value=0, value=60, step=1)
-    n_het = c2.number_input("Heterozygous (Aa)", min_value=0, value=30, step=1)
-    n_hom_alt = c3.number_input("Homozygous alternate (aa)", min_value=0, value=10, step=1)
-
-    if n_hom_ref + n_het + n_hom_alt == 0:
-        st.warning("Enter at least one individual.")
-        st.stop()
-
-    res = analyze_counts(int(n_hom_ref), int(n_het), int(n_hom_alt))
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Reference allele freq (p)", f"{res['p_ref']:.4f}")
-    m2.metric("Alternate allele freq (q)", f"{res['q_alt']:.4f}")
-    m3.metric("MAF", f"{res['maf']:.4f}")
-    m4.metric("Individuals", res["n_samples"])
-
-    st.subheader("Genotype frequencies")
-    geno = pd.DataFrame(
-        {
-            "Genotype": ["HomRef (AA)", "Het (Aa)", "HomAlt (aa)"],
-            "Observed count": res["hwe_observed"],
-            "Expected count (HWE)": [round(x, 2) for x in res["hwe_expected"]],
-            "Observed frequency": [round(res["hom_ref"], 4), round(res["het"], 4), round(res["hom_alt"], 4)],
-        }
-    )
-    st.dataframe(geno, hide_index=True)
-    st.bar_chart(geno.set_index("Genotype")[["Observed count", "Expected count (HWE)"]])
-
-    st.subheader("Hardy-Weinberg Equilibrium test")
-    st.write(f"Chi-square = **{res['hwe_chi_square']:.4f}**, p-value = **{res['hwe_p_value']:.4f}**")
-    if res["in_hwe"]:
-        st.success("No significant deviation from Hardy-Weinberg Equilibrium (p >= 0.05).")
-    else:
-        st.error("Significant deviation from Hardy-Weinberg Equilibrium (p < 0.05).")
+                    csv_output = df.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        "Download results as CSV",
+                        data=csv_output,
+                        file_name="variant_frequency_results.csv",
+                        mime="text/csv"
+                    )
+        except Exception as e:
+            st.error(f"Could not read the file: {e}")
 
 st.divider()
-st.caption("Built for the Biopython project course. Multi-allelic sites and missing/haploid calls are skipped.")
+
+with st.expander("About the calculation"):
+    st.write("""
+    Variant Allele Frequency (VAF) represents the proportion of observed
+    alleles that carry a particular variant.
+
+    For example, if 15 of 100 observed alleles contain a variant:
+
+    **VAF = 15 / 100 × 100 = 15%**
+
+    This calculator reports the frequency from the counts supplied by the
+    user. It does not determine whether a variant is harmful, pathogenic,
+    or clinically significant.
+    """)
+
+st.caption("Biopython • Streamlit • Pandas")
