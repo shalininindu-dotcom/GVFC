@@ -10,52 +10,75 @@ st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon=
 # =====================================================================
 # LOOK AND FEEL  (this part is only styling - no science happens here)
 # CSS = the language that controls colours and fonts on web pages.
+# Theme: a blue "lab notebook" - graph paper, navy ink, blue highlights.
 # =====================================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
 
-/* 1. Soft baby-blue page with a rounded, friendly font */
-.stApp { background: #EAF5FF; }
-html, body, .stApp, p, label, span, h1, h2, h3, li, button, input {
-    font-family: 'Nunito', sans-serif;
+/* 1. Pale-blue graph paper background (two sets of thin lines) */
+.stApp {
+    background-color: #EEF4FB;
+    background-image:
+        linear-gradient(rgba(47, 93, 158, 0.10) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(47, 93, 158, 0.10) 1px, transparent 1px);
+    background-size: 32px 32px;
 }
-h2, h3, p, label, li, span, .stMarkdown { color: #2B4A6F; }
+html, body, .stApp, p, label, span, li, button, input { font-family: 'Inter', sans-serif; }
+h2, h3, p, label, li, span, .stMarkdown { color: #14284B; }
 
-/* 2. The main content becomes a white rounded "card" */
+/* 2. The main content becomes a notebook page with a hard blue shadow */
 .block-container {
-    background: #FFFFFF; border-radius: 28px; padding: 2.5rem 3rem !important;
-    margin-top: 2rem; box-shadow: 0 8px 30px rgba(107, 185, 240, 0.25);
+    background: #FBFDFF; border: 1.5px solid #14284B; border-radius: 8px;
+    padding: 2.5rem 3rem !important; margin-top: 2rem;
+    box-shadow: 8px 8px 0 #2F5D9E;
 }
 
 /* 3. Title section */
-.hero { text-align: center; padding: 10px 0 20px; }
-.hero h1 { color: #2B4A6F; font-size: 3rem; font-weight: 800; margin: 0; }
-.hero p  { color: #5F7FA3; font-size: 1.15rem; }
-.tag     { color: #4AA3E0; letter-spacing: 0.2em; font-size: 0.8rem; font-weight: 800; }
+.hero { border-bottom: 2px solid #14284B; padding-bottom: 20px; margin-bottom: 20px; }
+.tag  { font-family: 'IBM Plex Mono', monospace; color: #2F5D9E; letter-spacing: 0.12em; font-size: 0.8rem; }
+.hero h1 { font-family: 'Fraunces', serif; color: #14284B; font-size: 3.2rem; font-weight: 800; line-height: 1.05; margin: 8px 0; }
+.hero h1 em { font-weight: 400; background: #BFE0FF; padding: 0 8px; }   /* blue highlighter pen */
+.hero p  { color: #4C6485; font-size: 1.1rem; margin: 0; }
 
-/* 4. Tabs */
-button[data-baseweb="tab"] { color: #5F7FA3; font-size: 16px; font-weight: 600; }
-button[data-baseweb="tab"][aria-selected="true"] { color: #1F5F99; }
+/* 4. "Fig. 1" strip of DNA letters */
+.fig { background: #FFFFFF; border: 1.5px solid #14284B; border-radius: 6px; padding: 14px 20px; margin-bottom: 24px; }
+.fig .cap { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #4C6485; }
+.fig .seq { font-family: 'IBM Plex Mono', monospace; font-size: 1.3rem; letter-spacing: 0.35em; line-height: 1.7; white-space: nowrap; overflow-x: auto; color: #14284B; }
+.fig .hit { background: #BFE0FF; outline: 1.5px solid #14284B; }
 
-/* 5. Rounded pastel buttons */
+/* 5. Tabs */
+button[data-baseweb="tab"] { color: #4C6485; font-size: 16px; font-weight: 600; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #14284B; }
+div[data-baseweb="tab-highlight"] { background-color: #2F5D9E !important; }
+
+/* 6. Buttons */
 .stButton > button, .stDownloadButton > button {
-    background: #8CCBF7; color: #0B2A47; border: none;
-    border-radius: 999px; font-weight: 800; padding: 0.5rem 1.6rem;
+    background: #2F5D9E; color: #FFFFFF; border: none;
+    border-radius: 6px; font-weight: 600; padding: 0.5rem 1.6rem;
 }
-.stButton > button:hover, .stDownloadButton > button:hover { background: #6BB9F0; color: #0B2A47; }
+.stButton > button:hover, .stDownloadButton > button:hover { background: #244A82; color: #FFFFFF; }
 
-/* 6. Input boxes */
-input { background: #F3F9FF !important; color: #2B4A6F !important; border-radius: 12px !important; }
+/* 7. Input boxes */
+div[data-baseweb="input"] { background: #F3F8FE !important; border: 1.5px solid #14284B !important; border-radius: 6px !important; }
+input { background: transparent !important; color: #14284B !important; font-family: 'IBM Plex Mono', monospace !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ---- Title section ----
 st.markdown("""
 <div class="hero">
-  <div class="tag">☁️ GENOMIC ANALYSIS TOOLKIT</div>
-  <h1>🧬 Genomic Variant Frequency Calculator</h1>
+  <div class="tag">LAB NOTEBOOK · ENTRY 01</div>
+  <h1>🧬 Genomic Variant <em>Frequency</em> Calculator</h1>
   <p>Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.</p>
+</div>
+<div class="fig">
+  <div class="cap">Fig. 1 · aligned sequences, variant column highlighted</div>
+  <div class="seq">
+    ATGCCGTA<span class="hit">C</span>GGATCTA<br>
+    ATGCCGTA<span class="hit">C</span>GGATCTA<br>
+    ATGCCGTA<span class="hit">A</span>GGATCTA
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
