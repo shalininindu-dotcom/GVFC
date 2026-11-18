@@ -6,7 +6,7 @@ from collections import Counter
 from io import StringIO
 
 st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon="🧬", layout="wide")
-st.title("🧬 Genomic Variant Frequency Calculator")
+st.title("Genomic Variant Frequency Calculator")
 st.caption("Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.")
 
 tab1, tab2, tab3 = st.tabs(["Single Variant", "CSV Dataset", "FASTA Analysis"])
