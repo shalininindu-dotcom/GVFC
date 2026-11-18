@@ -3,7 +3,7 @@ import pandas as pd
 from Bio.Seq import Seq
 from Bio import SeqIO
 from collections import Counter
-from io import BytesIO
+from io import StringIO
 
 st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon="🧬", layout="wide")
 st.title("🧬 Genomic Variant Frequency Calculator")
@@ -76,7 +76,8 @@ with tab3:
     fasta_file = st.file_uploader("Upload FASTA file", type=["fasta", "fa", "fna", "fas"], key="fasta_upload")
     if fasta_file is not None:
         try:
-            records = list(SeqIO.parse(BytesIO(fasta_file.getvalue()), "fasta"))
+            fasta_text = fasta_file.getvalue().decode("utf-8-sig")
+            records = list(SeqIO.parse(StringIO(fasta_text), "fasta"))
             if len(records) < 2:
                 st.error("Please upload at least two FASTA sequences.")
             else:
