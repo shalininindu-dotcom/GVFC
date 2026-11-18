@@ -9,72 +9,55 @@ st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon=
 
 # =====================================================================
 # LOOK AND FEEL  (this part is only styling - no science happens here)
-# CSS = the language that controls colours, fonts and animation on web pages.
+# CSS = the language that controls colours and fonts on web pages.
 # =====================================================================
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800&display=swap');
 
-/* 1. Dark background and font for the whole app */
-.stApp { background: #070B1A; color: #E6EDFF; font-family: 'Space Grotesk', sans-serif; }
-h1, h2, h3, p, label, span { font-family: 'Space Grotesk', sans-serif; }
-
-/* 2. Tabs */
-button[data-baseweb="tab"] { color: #9AA7CC; font-size: 16px; }
-button[data-baseweb="tab"][aria-selected="true"] { color: #E6EDFF; }
-
-/* 3. Buttons turn cyan */
-.stButton > button, .stDownloadButton > button {
-    background: #5CE1E6; color: #04101A; border: none;
-    border-radius: 999px; font-weight: 700; padding: 0.5rem 1.6rem;
+/* 1. Soft baby-blue page with a rounded, friendly font */
+.stApp { background: #EAF5FF; }
+html, body, .stApp, p, label, span, h1, h2, h3, li, button, input {
+    font-family: 'Nunito', sans-serif;
 }
-.stButton > button:hover { background: #8CF0F3; color: #04101A; }
+h2, h3, p, label, li, span, .stMarkdown { color: #2B4A6F; }
 
-/* 4. The DNA helix animation.
-   Each "rung" flips upside down forever (scaleY goes 1 -> -1 -> 1).
-   Every rung starts at a slightly different time, so they make a wave. */
-@keyframes flip { 0% {transform: scaleY(1);} 50% {transform: scaleY(-1);} 100% {transform: scaleY(1);} }
-.helix { display: flex; justify-content: space-between; align-items: center; height: 180px; margin: 10px 0 30px; }
-.rung  { display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-         height: 160px; width: 14px; animation: flip 5s ease-in-out infinite; }
-.dot   { width: 11px; height: 11px; border-radius: 50%; }
-.line  { flex: 1; width: 2px; background: rgba(230,237,255,0.25); }
+/* 2. The main content becomes a white rounded "card" */
+.block-container {
+    background: #FFFFFF; border-radius: 28px; padding: 2.5rem 3rem !important;
+    margin-top: 2rem; box-shadow: 0 8px 30px rgba(107, 185, 240, 0.25);
+}
 
-/* 5. Title fades in */
-@keyframes rise { from {opacity: 0; transform: translateY(18px);} to {opacity: 1; transform: translateY(0);} }
-.hero { animation: rise 0.9s ease-out; }
-.hero h1 { font-size: 3.4rem; font-weight: 700; line-height: 1.05; margin: 0; }
-.hero p  { color: #9AA7CC; font-size: 1.2rem; }
-.tag     { color: #5CE1E6; letter-spacing: 0.2em; font-size: 0.8rem; }
+/* 3. Title section */
+.hero { text-align: center; padding: 10px 0 20px; }
+.hero h1 { color: #2B4A6F; font-size: 3rem; font-weight: 800; margin: 0; }
+.hero p  { color: #5F7FA3; font-size: 1.15rem; }
+.tag     { color: #4AA3E0; letter-spacing: 0.2em; font-size: 0.8rem; font-weight: 800; }
+
+/* 4. Tabs */
+button[data-baseweb="tab"] { color: #5F7FA3; font-size: 16px; font-weight: 600; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #1F5F99; }
+
+/* 5. Rounded pastel buttons */
+.stButton > button, .stDownloadButton > button {
+    background: #8CCBF7; color: #0B2A47; border: none;
+    border-radius: 999px; font-weight: 800; padding: 0.5rem 1.6rem;
+}
+.stButton > button:hover, .stDownloadButton > button:hover { background: #6BB9F0; color: #0B2A47; }
+
+/* 6. Input boxes */
+input { background: #F3F9FF !important; color: #2B4A6F !important; border-radius: 12px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ---- Title section ----
 st.markdown("""
 <div class="hero">
-  <div class="tag">GENOMIC ANALYSIS TOOLKIT</div>
-  <h1>🧬 Genomic Variant<br>Frequency Calculator</h1>
+  <div class="tag">☁️ GENOMIC ANALYSIS TOOLKIT</div>
+  <h1>🧬 Genomic Variant Frequency Calculator</h1>
   <p>Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.</p>
 </div>
 """, unsafe_allow_html=True)
-
-# ---- Animated DNA helix ----
-# A, T, G, C each get a colour. We build 40 rungs with a simple for-loop.
-colours = ["#5CE1E6", "#FF5FA2", "#FFD166", "#8B7CFF"]
-helix_html = '<div class="helix">'
-for i in range(40):
-    top = colours[i % 4]            # colour of the top dot
-    bottom = colours[(i + 1) % 4]   # colour of the bottom dot
-    delay = -i * 0.125              # each rung starts a bit later than the last
-    helix_html += (
-        f'<div class="rung" style="animation-delay:{delay}s">'
-        f'<div class="dot" style="background:{top}"></div>'
-        f'<div class="line"></div>'
-        f'<div class="dot" style="background:{bottom}"></div>'
-        f'</div>'
-    )
-helix_html += "</div>"
-st.markdown(helix_html, unsafe_allow_html=True)
 
 # =====================================================================
 # THE SCIENCE  (same logic as before)
