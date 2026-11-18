@@ -3,20 +3,92 @@ import pandas as pd
 from Bio.Seq import Seq
 from Bio import SeqIO
 from collections import Counter
-from io import StringIO
+from io import BytesIO
 
 st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon="🧬", layout="wide")
-st.title("Genomic Variant Frequency Calculator")
-st.caption("Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.")
 
+# =====================================================================
+# LOOK AND FEEL  (this part is only styling - no science happens here)
+# CSS = the language that controls colours, fonts and animation on web pages.
+# =====================================================================
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
+
+/* 1. Dark background and font for the whole app */
+.stApp { background: #070B1A; color: #E6EDFF; font-family: 'Space Grotesk', sans-serif; }
+h1, h2, h3, p, label, span { font-family: 'Space Grotesk', sans-serif; }
+
+/* 2. Tabs */
+button[data-baseweb="tab"] { color: #9AA7CC; font-size: 16px; }
+button[data-baseweb="tab"][aria-selected="true"] { color: #E6EDFF; }
+
+/* 3. Buttons turn cyan */
+.stButton > button, .stDownloadButton > button {
+    background: #5CE1E6; color: #04101A; border: none;
+    border-radius: 999px; font-weight: 700; padding: 0.5rem 1.6rem;
+}
+.stButton > button:hover { background: #8CF0F3; color: #04101A; }
+
+/* 4. The DNA helix animation.
+   Each "rung" flips upside down forever (scaleY goes 1 -> -1 -> 1).
+   Every rung starts at a slightly different time, so they make a wave. */
+@keyframes flip { 0% {transform: scaleY(1);} 50% {transform: scaleY(-1);} 100% {transform: scaleY(1);} }
+.helix { display: flex; justify-content: space-between; align-items: center; height: 180px; margin: 10px 0 30px; }
+.rung  { display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+         height: 160px; width: 14px; animation: flip 5s ease-in-out infinite; }
+.dot   { width: 11px; height: 11px; border-radius: 50%; }
+.line  { flex: 1; width: 2px; background: rgba(230,237,255,0.25); }
+
+/* 5. Title fades in */
+@keyframes rise { from {opacity: 0; transform: translateY(18px);} to {opacity: 1; transform: translateY(0);} }
+.hero { animation: rise 0.9s ease-out; }
+.hero h1 { font-size: 3.4rem; font-weight: 700; line-height: 1.05; margin: 0; }
+.hero p  { color: #9AA7CC; font-size: 1.2rem; }
+.tag     { color: #5CE1E6; letter-spacing: 0.2em; font-size: 0.8rem; }
+</style>
+""", unsafe_allow_html=True)
+
+# ---- Title section ----
+st.markdown("""
+<div class="hero">
+  <div class="tag">GENOMIC ANALYSIS TOOLKIT</div>
+  <h1>🧬 Genomic Variant<br>Frequency Calculator</h1>
+  <p>Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ---- Animated DNA helix ----
+# A, T, G, C each get a colour. We build 40 rungs with a simple for-loop.
+colours = ["#5CE1E6", "#FF5FA2", "#FFD166", "#8B7CFF"]
+helix_html = '<div class="helix">'
+for i in range(40):
+    top = colours[i % 4]            # colour of the top dot
+    bottom = colours[(i + 1) % 4]   # colour of the bottom dot
+    delay = -i * 0.125              # each rung starts a bit later than the last
+    helix_html += (
+        f'<div class="rung" style="animation-delay:{delay}s">'
+        f'<div class="dot" style="background:{top}"></div>'
+        f'<div class="line"></div>'
+        f'<div class="dot" style="background:{bottom}"></div>'
+        f'</div>'
+    )
+helix_html += "</div>"
+st.markdown(helix_html, unsafe_allow_html=True)
+
+# =====================================================================
+# THE SCIENCE  (same logic as before)
+# =====================================================================
 tab1, tab2, tab3 = st.tabs(["Single Variant", "CSV Dataset", "FASTA Analysis"])
 
+# ---------- TAB 1: one variant from counts ----------
 with tab1:
     st.subheader("Calculate one variant")
     variant_id = st.text_input("Variant ID", placeholder="e.g. rs123456")
     variant_allele = st.text_input("Variant allele", placeholder="e.g. A", max_chars=50)
     total = st.number_input("Total alleles observed", min_value=1, step=1, value=100)
     variant_count = st.number_input("Variant alleles observed", min_value=0, step=1, value=10)
+
     if st.button("Calculate frequency", type="primary", key="single_calc"):
         allele = variant_allele.strip().upper()
         if not variant_id.strip():
@@ -28,7 +100,7 @@ with tab1:
         else:
             if allele:
                 Seq(allele)  # Biopython sequence object
-            freq = variant_count / total * 100
+            freq = variant_count / total * 100   # the core formula
             st.success(f"Variant allele frequency: **{freq:.2f}%**")
             st.dataframe(pd.DataFrame([{
                 "Variant ID": variant_id.strip(),
@@ -38,6 +110,7 @@ with tab1:
                 "Frequency (%)": round(freq, 2)
             }]), use_container_width=True, hide_index=True)
 
+# ---------- TAB 2: many variants from a CSV ----------
 with tab2:
     st.subheader("Calculate frequencies from a CSV file")
     st.markdown("CSV columns required: `variant_id`, `variant_alleles`, `total_alleles`")
@@ -69,6 +142,7 @@ with tab2:
         except Exception as exc:
             st.error(f"Could not read the CSV: {exc}")
 
+# ---------- TAB 3: variants from an aligned FASTA file ----------
 with tab3:
     st.subheader("Identify variants from aligned FASTA sequences")
     st.write("Upload a multiple-sequence alignment in FASTA format. All sequences must already be aligned and have equal length.")
@@ -76,8 +150,7 @@ with tab3:
     fasta_file = st.file_uploader("Upload FASTA file", type=["fasta", "fa", "fna", "fas"], key="fasta_upload")
     if fasta_file is not None:
         try:
-            fasta_text = fasta_file.getvalue().decode("utf-8-sig")
-            records = list(SeqIO.parse(StringIO(fasta_text), "fasta"))
+            records = list(SeqIO.parse(BytesIO(fasta_file.getvalue()), "fasta"))
             if len(records) < 2:
                 st.error("Please upload at least two FASTA sequences.")
             else:
@@ -95,16 +168,16 @@ with tab3:
                     reference = sequences[ref_index]
                     if st.button("Analyse FASTA sequences", type="primary", key="fasta_analyse"):
                         rows = []
-                        for pos, ref_base in enumerate(reference):
+                        for pos, ref_base in enumerate(reference):   # go through every position
                             if ref_base not in "ACGT":
                                 continue
                             called = [seq[pos] for seq in sequences if seq[pos] in "ACGT"]
                             if not called:
                                 continue
-                            counts = Counter(called)
+                            counts = Counter(called)                 # count how many of each base
                             denominator = len(called)
                             for alt, count in sorted(counts.items()):
-                                if alt != ref_base:
+                                if alt != ref_base:                  # only differences from the reference
                                     rows.append({
                                         "Position (1-based)": pos + 1,
                                         "Reference": ref_base,
