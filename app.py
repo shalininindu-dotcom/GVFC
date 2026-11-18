@@ -68,7 +68,6 @@ input { background: transparent !important; color: #14284B !important; font-fami
 # ---- Title section ----
 st.markdown("""
 <div class="hero">
-  <div class="tag">LAB NOTEBOOK · ENTRY 01</div>
   <h1>🧬 Genomic Variant <em>Frequency</em> Calculator</h1>
   <p>Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.</p>
 </div>
