@@ -224,8 +224,8 @@ def analyse_fasta(sequences, reference):
 
 
 
-        except Exception as exc:
-            st.error(f"Could not process CSV: {exc}")
+except Exception as exc:
+        st.error(f"Could not process CSV: {exc}")
 
 
 # ------------------------------------------------------------
