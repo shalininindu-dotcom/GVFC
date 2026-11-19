@@ -11,35 +11,28 @@
 # SHARED SECTION: IMPORTING LIBRARIES
 # ============================================================
 
-# PERSON A: Streamlit interface
 import streamlit as st
-
-# PERSON B: Data handling and biological sequence processing
 import pandas as pd
 from Bio.Seq import Seq
 from Bio import SeqIO
 from collections import Counter
-from io import BytesIO
+from io import StringIO
 
 
 # ============================================================
 # PERSON B: DATA PROCESSING AND CALCULATION FUNCTIONS
 # ============================================================
-# This section handles the actual Python logic.
-# It does not create any website elements.
-# ============================================================
-
 
 # ------------------------------------------------------------
 # PERSON B - FUNCTION 1: SINGLE VARIANT CALCULATION
 # ------------------------------------------------------------
 
-def calculate_single_frequency(variant_id, allele, variant_count, total):
+def calculate_single_frequency(variant_id, allele, variant_count, total): #total is total no.of alleles checked
 
-    if not variant_id.strip():
+    if not variant_id.strip(): #if varient id is null
         raise ValueError("Please enter a variant ID.")
 
-    if variant_count > total:
+    if variant_count > total: #making sure numbers make sense
         raise ValueError("Variant alleles cannot exceed total alleles.")
 
     allele = allele.strip().upper()
@@ -71,7 +64,7 @@ def calculate_single_frequency(variant_id, allele, variant_count, total):
 def process_csv(csv_file):
 
     # Read uploaded CSV file using Pandas
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(csv_file) #df = dataframe
 
     # Define required CSV columns
     required = {
@@ -86,19 +79,15 @@ def process_csv(csv_file):
     if missing:
         raise ValueError(
             "Missing column(s): " + ", ".join(sorted(missing))
-        )
+        ) #stops the code and lists the missing column names cleanly using
 
     # Convert allele counts into numeric values
-    df["variant_alleles"] = pd.to_numeric(
-        df["variant_alleles"], errors="coerce"
-    )
+    df["variant_alleles"] = pd.to_numeric(df["variant_alleles"], errors="coerce")
 
-    df["total_alleles"] = pd.to_numeric(
-        df["total_alleles"], errors="coerce"
-    )
+    df["total_alleles"] = pd.to_numeric(df["total_alleles"], errors="coerce")
 
     # Check for missing or non-numeric values
-    if df[["variant_alleles", "total_alleles"]].isna().any().any():
+    if df[["variant_alleles", "total_alleles"]].isna().any().any(): #marks every blank cell as true and 
         raise ValueError("Allele counts must be numeric.")
 
     # Check total allele counts
@@ -128,9 +117,8 @@ def process_csv(csv_file):
 def parse_fasta(fasta_bytes):
 
     # Read FASTA records using Biopython SeqIO
-    records = list(
-        SeqIO.parse(BytesIO(fasta_bytes), "fasta")
-    )
+    fasta_text = fasta_bytes.decode("utf-8-sig")
+    records = list(SeqIO.parse(StringIO(fasta_text), "fasta")) #a list is made of the content
 
     # At least two sequences are required for comparison
     if len(records) < 2:
@@ -152,7 +140,8 @@ def parse_fasta(fasta_bytes):
     invalid = [
         rid
         for rid, seq in zip(ids, sequences)
-        if any(base not in allowed for base in seq)
+        if any(base not in allowed for base in seq) #checks every character (base) in seq. 
+        #If even one character is not in allowed (such as a number, space, or unexpected letter), it returns True.
     ]
 
     if invalid:
