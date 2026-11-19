@@ -222,9 +222,164 @@ def analyse_fasta(sequences, reference):
 # It collects inputs, uploads files and displays results.
 # ============================================================
 
+# ------------------------------------------------------------
+# PERSON A - SECTION 1: PAGE CONFIGURATION
+# ------------------------------------------------------------
+
+# Set browser-tab details and use the wide page layout.
+st.set_page_config(
+    page_title="Genomic Variant Frequency Calculator",
+    page_icon="🧬",
+    layout="wide"
+)
+
+st.title("🧬 Genomic Variant Frequency Calculator")
+
+st.caption(
+    "Calculate variant frequencies from counts, CSV datasets, "
+    "and aligned FASTA sequences."
+)
 
 
-except Exception as exc:
+# ------------------------------------------------------------
+# PERSON A - SECTION 2: CREATE WEBSITE TABS
+# ------------------------------------------------------------
+
+# Create three tabs so each type of calculation has its own workspace.
+tab1, tab2, tab3 = st.tabs([
+    "Single Variant",
+    "CSV Dataset",
+    "FASTA Analysis"
+])
+
+# ------------------------------------------------------------
+# PERSON A - SECTION 2: CREATE WEBSITE TABS
+# ------------------------------------------------------------
+
+# Create three tabs so each type of calculation has its own workspace.
+tab1, tab2, tab3 = st.tabs([
+    "Single Variant",
+    "CSV Dataset",
+    "FASTA Analysis"
+])
+
+
+# ------------------------------------------------------------
+# PERSON A - SECTION 3: SINGLE VARIANT INTERFACE
+# ------------------------------------------------------------
+
+# Everything indented under 'with tab1' appears in the Single Variant tab.
+with tab1:
+
+    st.subheader("Calculate one variant")
+
+    # text_input lets the user type a variant name/identifier.
+    variant_id = st.text_input(
+        "Variant ID",
+        placeholder="e.g. rs123456"
+    )
+
+    variant_allele = st.text_input(
+        "Variant allele",
+        placeholder="e.g. A",
+        max_chars=50
+    )
+
+    # number_input restricts the total to a positive whole-number count.
+    total = st.number_input(
+        "Total alleles observed",
+        min_value=1,
+        step=1,
+        value=100
+    )
+
+    # This is the number of observations carrying the variant allele.
+    variant_count = st.number_input(
+        "Variant alleles observed",
+        min_value=0,
+        step=1,
+        value=10
+    )
+
+    # The calculation runs only after the user clicks this button.
+    if st.button(
+        "Calculate frequency",
+        type="primary",
+        key="single_calc"
+    ):
+
+        try:
+            result = calculate_single_frequency(
+                variant_id,
+                variant_allele,
+                variant_count,
+                total
+            )
+
+            st.success(
+                f"Variant allele frequency: "
+                f"**{result['Frequency (%)']:.2f}%**"
+            )
+
+            st.dataframe(
+                pd.DataFrame([result]),
+                use_container_width=True,
+                hide_index=True
+            )
+
+        # If validation fails, show the reason on the page instead of
+        # allowing the app to stop with an unhandled error.
+        except Exception as exc:
+            st.error(str(exc))
+        
+# ------------------------------------------------------------
+# PERSON A - SECTION 4: CSV UPLOAD INTERFACE
+# ------------------------------------------------------------
+
+# Everything indented under 'with tab2' appears in the CSV Dataset tab.
+with tab2:
+
+    st.subheader("Calculate frequencies from a CSV file")
+
+    st.markdown(
+        "CSV columns required: "
+        "`variant_id`, `variant_alleles`, `total_alleles`"
+    )
+
+    # file_uploader lets the user select a CSV from their device.
+    csv_file = st.file_uploader(
+        "Upload CSV",
+        type=["csv"],
+        key="csv_upload"
+    )
+
+    # A file uploader returns None until the user chooses a file.
+    # Only try to process the CSV after a file has been uploaded.
+    if csv_file is not None:
+
+        try:
+            df = process_csv(csv_file)
+
+            st.success(
+                f"Calculated frequencies for {len(df)} variant(s)."
+            )
+
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True
+            )
+
+            # Convert the result table back into CSV text so the user
+            # can download it. index=False avoids adding row numbers.
+            st.download_button(
+                "Download results as CSV",
+                df.to_csv(index=False).encode("utf-8"),
+                "variant_frequency_results.csv",
+                "text/csv",
+                key="csv_download"
+            )
+        except Exception as exc:
         st.error(f"Could not process CSV: {exc}")
 
 
