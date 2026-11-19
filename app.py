@@ -170,6 +170,7 @@ def analyse_fasta(sequences, reference):
     rows = []
 
     # Compare every position in the reference sequence
+    # enumerate() gives each reference base its Python position 
     for pos, ref_base in enumerate(reference):
 
         # Skip unknown reference bases and alignment gaps
