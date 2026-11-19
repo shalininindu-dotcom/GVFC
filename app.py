@@ -223,148 +223,6 @@ def analyse_fasta(sequences, reference):
 # ============================================================
 
 
-# ------------------------------------------------------------
-# PERSON A - SECTION 1: PAGE CONFIGURATION
-# ------------------------------------------------------------
-
-st.set_page_config(
-    page_title="Genomic Variant Frequency Calculator",
-    page_icon="🧬",
-    layout="wide"
-)
-
-st.title("🧬 Genomic Variant Frequency Calculator")
-
-st.caption(
-    "Calculate variant frequencies from counts, CSV datasets, "
-    "and aligned FASTA sequences."
-)
-
-
-# ------------------------------------------------------------
-# PERSON A - SECTION 2: CREATE WEBSITE TABS
-# ------------------------------------------------------------
-
-tab1, tab2, tab3 = st.tabs([
-    "Single Variant",
-    "CSV Dataset",
-    "FASTA Analysis"
-])
-
-
-# ------------------------------------------------------------
-# PERSON A - SECTION 3: SINGLE VARIANT INTERFACE
-# ------------------------------------------------------------
-
-with tab1:
-
-    st.subheader("Calculate one variant")
-
-    # Collect variant information from the user
-    variant_id = st.text_input(
-        "Variant ID",
-        placeholder="e.g. rs123456"
-    )
-
-    variant_allele = st.text_input(
-        "Variant allele",
-        placeholder="e.g. A",
-        max_chars=50
-    )
-
-    total = st.number_input(
-        "Total alleles observed",
-        min_value=1,
-        step=1,
-        value=100
-    )
-
-    variant_count = st.number_input(
-        "Variant alleles observed",
-        min_value=0,
-        step=1,
-        value=10
-    )
-
-    # Button to start calculation
-    if st.button(
-        "Calculate frequency",
-        type="primary",
-        key="single_calc"
-    ):
-
-        try:
-            # PERSON A calls PERSON B's calculation function
-            result = calculate_single_frequency(
-                variant_id,
-                variant_allele,
-                variant_count,
-                total
-            )
-
-            # Display calculated frequency
-            st.success(
-                f"Variant allele frequency: "
-                f"**{result['Frequency (%)']:.2f}%**"
-            )
-
-            # Display results in a table
-            st.dataframe(
-                pd.DataFrame([result]),
-                use_container_width=True,
-                hide_index=True
-            )
-
-        except Exception as exc:
-            st.error(str(exc))
-
-
-# ------------------------------------------------------------
-# PERSON A - SECTION 4: CSV UPLOAD INTERFACE
-# ------------------------------------------------------------
-
-with tab2:
-
-    st.subheader("Calculate frequencies from a CSV file")
-
-    st.markdown(
-        "CSV columns required: "
-        "`variant_id`, `variant_alleles`, `total_alleles`"
-    )
-
-    # Allow user to upload a CSV file
-    csv_file = st.file_uploader(
-        "Upload CSV",
-        type=["csv"],
-        key="csv_upload"
-    )
-
-    if csv_file is not None:
-
-        try:
-            # PERSON A calls PERSON B's CSV processing function
-            df = process_csv(csv_file)
-
-            # Display success message
-            st.success(
-                f"Calculated frequencies for {len(df)} variant(s)."
-            )
-
-            # Display processed dataset
-            st.dataframe(
-                df,
-                use_container_width=True,
-                hide_index=True
-            )
-
-            # Allow user to download results
-            st.download_button(
-                "Download results as CSV",
-                df.to_csv(index=False).encode("utf-8"),
-                "variant_frequency_results.csv",
-                "text/csv",
-                key="csv_download"
-            )
 
         except Exception as exc:
             st.error(f"Could not process CSV: {exc}")
@@ -374,6 +232,7 @@ with tab2:
 # PERSON A - SECTION 5: FASTA UPLOAD INTERFACE
 # ------------------------------------------------------------
 
+# Everything indented under 'with tab3' appears in the FASTA Analysis tab.
 with tab3:
 
     st.subheader("Identify variants from aligned FASTA sequences")
@@ -388,45 +247,42 @@ with tab3:
         "The reported frequency is not automatically diploid clinical VAF."
     )
 
-    # Allow user to upload a FASTA file
+    # Accept common FASTA filename extensions in this upload control.
     fasta_file = st.file_uploader(
         "Upload FASTA file",
         type=["fasta", "fa", "fna", "fas"],
         key="fasta_upload"
     )
 
+    # Do not parse anything until the user has uploaded a FASTA file.
     if fasta_file is not None:
 
         try:
-            # PERSON A calls PERSON B's FASTA parsing function
-            ids, sequences = parse_fasta(
-                fasta_file.getvalue()
-            )
+            # Parse uploaded FASTA bytes using the corrected function.
+            ids, sequences = parse_fasta(fasta_file.getvalue())
 
-            # Display dropdown to select reference sequence
             ref_id = st.selectbox(
                 "Select reference sequence",
                 ids
             )
 
-            # Find selected reference sequence
+            # Find the selected reference's position in the IDs list,
+            # then use the same position to get its DNA sequence.
             ref_index = ids.index(ref_id)
             reference = sequences[ref_index]
 
-            # Start FASTA analysis
+            # Run the comparison only when the user clicks Analyse.
             if st.button(
                 "Analyse FASTA sequences",
                 type="primary",
                 key="fasta_analyse"
             ):
 
-                # PERSON A calls PERSON B's analysis function
                 result = analyse_fasta(
                     sequences,
                     reference
                 )
 
-                # Display results
                 if not result.empty:
 
                     st.success(
@@ -439,7 +295,6 @@ with tab3:
                         hide_index=True
                     )
 
-                    # Download FASTA analysis results
                     st.download_button(
                         "Download FASTA results",
                         result.to_csv(index=False).encode("utf-8"),
@@ -454,7 +309,6 @@ with tab3:
                         "selected reference were found."
                     )
 
-            # Display uploaded sequence information
             st.caption(
                 f"Loaded {len(sequences)} sequences, "
                 f"each {len(reference)} nucleotides long."
@@ -468,8 +322,10 @@ with tab3:
 # PERSON A - SECTION 6: INFORMATION DISPLAY
 # ------------------------------------------------------------
 
+# A divider separates the main tools from the explanatory information.
 st.divider()
 
+# This expandable panel explains the formulas and scientific limitations.
 with st.expander("Calculation method and limitations"):
 
     st.markdown("""
@@ -489,10 +345,5 @@ with st.expander("Calculation method and limitations"):
     Only A, C, G and T are counted.
 
     Positions use 1-based numbering.
-
-    This educational tool compares aligned sequences.
-    It does not map raw sequencing reads, call variants
-    from raw reads, or determine clinical significance.
     """)
 
-st.caption("Built with Biopython • Streamlit • Pandas")
