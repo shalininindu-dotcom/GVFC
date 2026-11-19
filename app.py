@@ -6,94 +6,17 @@ from collections import Counter
 from io import BytesIO
 
 st.set_page_config(page_title="Genomic Variant Frequency Calculator", page_icon="🧬", layout="wide")
+st.title("🧬 Genomic Variant Frequency Calculator")
+st.caption("Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.")
 
-# =====================================================================
-# LOOK AND FEEL  (this part is only styling - no science happens here)
-# CSS = the language that controls colours and fonts on web pages.
-# Theme: a blue "lab notebook" - graph paper, navy ink, blue highlights.
-# =====================================================================
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
-
-/* 1. Pale-blue graph paper background (two sets of thin lines) */
-.stApp {
-    background-color: #EEF4FB;
-    background-image:
-        linear-gradient(rgba(47, 93, 158, 0.10) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(47, 93, 158, 0.10) 1px, transparent 1px);
-    background-size: 32px 32px;
-}
-html, body, .stApp, p, label, span, li, button, input { font-family: 'Inter', sans-serif; }
-h2, h3, p, label, li, span, .stMarkdown { color: #14284B; }
-
-/* 2. The main content becomes a notebook page with a hard blue shadow */
-.block-container {
-    background: #FBFDFF; border: 1.5px solid #14284B; border-radius: 8px;
-    padding: 2.5rem 3rem !important; margin-top: 2rem;
-    box-shadow: 8px 8px 0 #2F5D9E;
-}
-
-/* 3. Title section */
-.hero { border-bottom: 2px solid #14284B; padding-bottom: 20px; margin-bottom: 20px; }
-.tag  { font-family: 'IBM Plex Mono', monospace; color: #2F5D9E; letter-spacing: 0.12em; font-size: 0.8rem; }
-.hero h1 { font-family: 'Fraunces', serif; color: #14284B; font-size: 3.2rem; font-weight: 800; line-height: 1.05; margin: 8px 0; }
-.hero h1 em { font-weight: 400; background: #BFE0FF; padding: 0 8px; }   /* blue highlighter pen */
-.hero p  { color: #4C6485; font-size: 1.1rem; margin: 0; }
-
-/* 4. "Fig. 1" strip of DNA letters */
-.fig { background: #FFFFFF; border: 1.5px solid #14284B; border-radius: 6px; padding: 14px 20px; margin-bottom: 24px; }
-.fig .cap { font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: #4C6485; }
-.fig .seq { font-family: 'IBM Plex Mono', monospace; font-size: 1.3rem; letter-spacing: 0.35em; line-height: 1.7; white-space: nowrap; overflow-x: auto; color: #14284B; }
-.fig .hit { background: #BFE0FF; outline: 1.5px solid #14284B; }
-
-/* 5. Tabs */
-button[data-baseweb="tab"] { color: #4C6485; font-size: 16px; font-weight: 600; }
-button[data-baseweb="tab"][aria-selected="true"] { color: #14284B; }
-div[data-baseweb="tab-highlight"] { background-color: #2F5D9E !important; }
-
-/* 6. Buttons */
-.stButton > button, .stDownloadButton > button {
-    background: #2F5D9E; color: #FFFFFF; border: none;
-    border-radius: 6px; font-weight: 600; padding: 0.5rem 1.6rem;
-}
-.stButton > button:hover, .stDownloadButton > button:hover { background: #244A82; color: #FFFFFF; }
-
-/* 7. Input boxes */
-div[data-baseweb="input"] { background: #F3F8FE !important; border: 1.5px solid #14284B !important; border-radius: 6px !important; }
-input { background: transparent !important; color: #14284B !important; font-family: 'IBM Plex Mono', monospace !important; }
-</style>
-""", unsafe_allow_html=True)
-
-# ---- Title section ----
-st.markdown("""
-<div class="hero">
-  <h1>🧬 Genomic Variant <em>Frequency</em> Calculator</h1>
-  <p>Calculate variant frequencies from counts, CSV datasets, and aligned FASTA sequences.</p>
-</div>
-<div class="fig">
-  <div class="cap">Fig. 1 · aligned sequences, variant column highlighted</div>
-  <div class="seq">
-    ATGCCGTA<span class="hit">C</span>GGATCTA<br>
-    ATGCCGTA<span class="hit">C</span>GGATCTA<br>
-    ATGCCGTA<span class="hit">A</span>GGATCTA
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-# =====================================================================
-# THE SCIENCE  (same logic as before)
-# =====================================================================
 tab1, tab2, tab3 = st.tabs(["Single Variant", "CSV Dataset", "FASTA Analysis"])
 
-# ---------- TAB 1: one variant from counts ----------
 with tab1:
     st.subheader("Calculate one variant")
     variant_id = st.text_input("Variant ID", placeholder="e.g. rs123456")
     variant_allele = st.text_input("Variant allele", placeholder="e.g. A", max_chars=50)
     total = st.number_input("Total alleles observed", min_value=1, step=1, value=100)
     variant_count = st.number_input("Variant alleles observed", min_value=0, step=1, value=10)
-
     if st.button("Calculate frequency", type="primary", key="single_calc"):
         allele = variant_allele.strip().upper()
         if not variant_id.strip():
@@ -105,7 +28,7 @@ with tab1:
         else:
             if allele:
                 Seq(allele)  # Biopython sequence object
-            freq = variant_count / total * 100   # the core formula
+            freq = variant_count / total * 100
             st.success(f"Variant allele frequency: **{freq:.2f}%**")
             st.dataframe(pd.DataFrame([{
                 "Variant ID": variant_id.strip(),
@@ -115,7 +38,6 @@ with tab1:
                 "Frequency (%)": round(freq, 2)
             }]), use_container_width=True, hide_index=True)
 
-# ---------- TAB 2: many variants from a CSV ----------
 with tab2:
     st.subheader("Calculate frequencies from a CSV file")
     st.markdown("CSV columns required: `variant_id`, `variant_alleles`, `total_alleles`")
@@ -147,7 +69,6 @@ with tab2:
         except Exception as exc:
             st.error(f"Could not read the CSV: {exc}")
 
-# ---------- TAB 3: variants from an aligned FASTA file ----------
 with tab3:
     st.subheader("Identify variants from aligned FASTA sequences")
     st.write("Upload a multiple-sequence alignment in FASTA format. All sequences must already be aligned and have equal length.")
@@ -173,16 +94,16 @@ with tab3:
                     reference = sequences[ref_index]
                     if st.button("Analyse FASTA sequences", type="primary", key="fasta_analyse"):
                         rows = []
-                        for pos, ref_base in enumerate(reference):   # go through every position
+                        for pos, ref_base in enumerate(reference):
                             if ref_base not in "ACGT":
                                 continue
                             called = [seq[pos] for seq in sequences if seq[pos] in "ACGT"]
                             if not called:
                                 continue
-                            counts = Counter(called)                 # count how many of each base
+                            counts = Counter(called)
                             denominator = len(called)
                             for alt, count in sorted(counts.items()):
-                                if alt != ref_base:                  # only differences from the reference
+                                if alt != ref_base:
                                     rows.append({
                                         "Position (1-based)": pos + 1,
                                         "Reference": ref_base,
