@@ -344,6 +344,5 @@ with st.expander("Calculation method and limitations"):
     N and gaps (-) are excluded from the denominator.
     Only A, C, G and T are counted.
 
-    Positions use 1-based numbering.
-    """)
+    Positions use 1-based numbering.""")
 
