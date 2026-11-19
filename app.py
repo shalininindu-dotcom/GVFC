@@ -380,7 +380,7 @@ with tab2:
                 key="csv_download"
             )
         except Exception as exc:
-        st.error(f"Could not process CSV: {exc}")
+            st.error(f"Could not process CSV: {exc}")
 
 
 # ------------------------------------------------------------
