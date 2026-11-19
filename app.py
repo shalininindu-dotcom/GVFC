@@ -252,17 +252,6 @@ tab1, tab2, tab3 = st.tabs([
     "FASTA Analysis"
 ])
 
-# ------------------------------------------------------------
-# PERSON A - SECTION 2: CREATE WEBSITE TABS
-# ------------------------------------------------------------
-
-# Create three tabs so each type of calculation has its own workspace.
-tab1, tab2, tab3 = st.tabs([
-    "Single Variant",
-    "CSV Dataset",
-    "FASTA Analysis"
-])
-
 
 # ------------------------------------------------------------
 # PERSON A - SECTION 3: SINGLE VARIANT INTERFACE
